@@ -4,7 +4,7 @@ import numpy as np
 
 from numba.core import types, cgutils
 from numba.experimental import structref
-from numba.extending import overload_method, intrinsic
+from numba.extending import overload_method, intrinsic, overload_attribute
 from .ckdtree import ckdtree as ckdtree_ct
 import warnings
 from typing import Optional, Any
@@ -65,7 +65,7 @@ def _np_min(array, axis):
 
 @nb.njit(nogil=True, fastmath=True, cache=True, inline='always')
 def _np_max(array, axis):
-  return _np_apply_along_axis(np.amin, axis, array)
+  return _np_apply_along_axis(np.amax, axis, array)
 
 
 def _convert_to_valid_input(X, n_features, dtype):
@@ -251,12 +251,12 @@ def _KDTree_get_idx(self):
 
 @nb.njit(cache=True)
 def _KDTree_get_size(self):
-    return self._size()
+    return self.size
 
 
 @nb.njit(cache=True)
 def _KDTree_get_leafsize(self):
-    return self._leafsize()
+    return self.leafsize
 
 
 @nb.njit(cache=True)
@@ -285,7 +285,7 @@ def _KDTree_query_radius_parallel(self, X, r, p=2.0, eps=0.0, return_sorted=Fals
 
 
 # functions required for pickling the Kdtree
-@overload_method(KDTreeNumbaType, "_size", jit_options={"cache": True})
+@overload_attribute(KDTreeNumbaType, "size", jit_options={"cache": True})
 def _ol_size(self):
     dtype = self.field_dict['data'].dtype
     if dtype != nb.types.float32:
@@ -293,13 +293,13 @@ def _ol_size(self):
 
     func_size = ckdtree_ct.size[dtype]
 
-    def _size_impl(self):
+    def size_impl(self):
         return func_size(self.ckdtree)
 
-    return _size_impl
+    return size_impl
 
 
-@overload_method(KDTreeNumbaType, "_leafsize", jit_options={"cache": True})
+@overload_attribute(KDTreeNumbaType, "_leafsize", jit_options={"cache": True})
 def _ol_leafsize(self):
     """Returns the leaf size of the underlying tree
     """
